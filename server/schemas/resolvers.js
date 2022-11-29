@@ -5,7 +5,7 @@ const { signToken } = require('../utils/auth');
 const resolvers = {
   Query: {
     me: async (parent, args, context) => {
-      return User.find({ username: context.username });
+      return User.findOne({ _id: context.user._id });
     }
   },
 
@@ -32,16 +32,23 @@ const resolvers = {
 
       return { token, user };
     },
-    savedBook: async (parent, { authors, description, title, bookId, image, link }, context) => {
+    saveBook: async (parent, { authors, description, title, bookId, image, link }, context) => {
       const user = await User.findOneAndUpdate(
-        { username: context.username },
-        { $addToSet: { savedBooks: { authors, description, bookId, image, link, title } } }
+        { _id: context.user._id },
+        { $addToSet: { savedBooks: { authors, description, bookId, image, link, title } } },
+        { new: true, runValidators: true }
       );
 
       return user;
     },
     removeBook: async (parent, { bookId }, context) => {
-      return User.findOneAndDelete();
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: context.user._id },
+        { $pull: { savedBooks: { bookId: bookId } } },
+        { new: true }
+      );
+
+      return updatedUser
     },
   },
 };
